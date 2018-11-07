@@ -1,0 +1,339 @@
+---
+title: "EssentiallyR: Data Management"
+output: html_notebook
+---
+
+This notebooks is a collection of notes from my studies from [EssentilR](https://onlinecourses.science.psu.edu/stat485/sites/onlinecourses.science.psu.edu.stat485/files/EssentialR/index.pdf). The next couple of sections within this notebook cover the following topics:
+* R as a DataFrame
+* Importing and Manipulating Data
+* Working with multiple variables
+
+### The DataFrame
+
+```{r}
+a <- list(c(1,2,3), "Blue", factor(c("A", "B","A", "B","B")))
+a
+```
+`data()` is a function to load in "built in" data sets are stored as data frame.
+
+```{r}
+cyl<-factor(scan(text= "6 6 4 6 8 6 8 4 4 6 6 8 8 8 8 8 8 4 4 4 4 8 8 8 8 4 4 4 8 6 8 4"))
+am<-factor(scan(text= "1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 1 1 1 1 1 1 1"))
+levels(am) <- c("auto", "manual")
+
+disp<-scan(text= "2.62 2.62 1.77 4.23 5.90 3.69 5.90 2.40 2.31 2.75 2.75 4.52 4.52 4.52
+7.73 7.54 7.21 1.29 1.24 1.17 1.97 5.21 4.98 5.74 6.55 1.29 1.97 1.56 5.75 2.38 4.93 1.98")
+hp<-scan(text="110 110 93 110 175 105 245 62 95 123 123 180 180 180 205 215 230 66
+52 65 97 150 150 245 175 66 91 113 264 175 335 109")
+
+# create data frame for the cars dataset
+
+car <- data.frame(cyl, disp, hp, am)
+head(car)
+
+```
+
+
+```{r}
+summary(car)
+names(car)
+```
+
+View and modify column headings
+```{r}
+names(car)
+names(car)[4]
+names(car)[4] <- "trans"
+names(car)
+car$trans
+```
+Using the `[]` _index operator_ to access parts of the dataframe by _rows & columsns_. Leaving one value black implies "all rows" or "all columns". 
+
+```{r}
+# this gives us rows 1:3
+car[1:3, ]
+
+```
+
+
+#### Subset
+`subset()` function which is useful for workng with dataframes, since it allows you to extract data from the dataframe based on multiple conditions, and it has n easy to read syntax. 
+```{r}
+data(faithful)
+summary(subset(faithful, eruptions <= 3))
+#plot(faithful)
+```
+
+### Chaning Data Frames (adding new column)
+
+Its very simple to add new columns (or rows) to a df 
+```{r}
+# specify a new name for a variable can create a new column
+car[,5] <- as.numeric(levels(car$cyl)[car$cyl])
+names(car)
+names(car)[5] <- "cyl.numeric"
+# data set now has 5 columns 'V5' - 'Variable 5'
+
+#lets calculate displacement per cylinder
+car$disp.per.cyl <- car$disp/car$cyl.numeric
+names(car)
+
+
+```
+
+#### combining data frames together
+- `cbind()` - column wise binding
+- `rbind()` - row wise binding
+
+```{r}
+# combind mtcars variables that are not in the cars dataset
+data(mtcars)
+names(mtcars)
+
+dim(car)
+car <- cbind(car, mtcars[, c(1, 5:8, 10:11)])
+dim(car)
+head(car)
+
+```
+
+#### Comments
+`comments()` this function is an attribute of data frames that is reserved for comments.
+```{r}
+comment(car) <- "A data set derived from the mtcars dataset. Displacement is in liters"
+
+```
+
+# Chapter 9: Manipulating Data (Data Wrangling)
+
+### Summarizing Data
+
+```{r}
+setwd("~/R/essentiallyR")
+beans <- read.csv("./Data/BeansData.csv", header = TRUE, comm = "#")
+dim(beans)
+```
+
+`apply()` is a family of functinos used to _"do something over and over again to subset of some data"
+
+Below:
+* we apply function `mean()` to the columns (MARGIN=2) 6,7,8 of beans
+* columns 3,4, and 5 are factors so means() would give an error
+* `na.rm = True` refers to arguments that are passed to the function specififed by FUN `mean()`
+
+```{r}
+# get the means for columns of dta
+apply(X = beans[,6:8], MARGIN = 2, FUN = mean, na.rm = TRUE)
+
+```
+
+Summariaze data to get __group means__: means for each treatment type:
+
+```{r}
+tapply(beans$rt.len, INDEX = list(beans$trt), FUN = mean, na.rm = TRUE)
+
+# variable trt was coded of tall the treatments
+
+```
+
+
+```{r}
+tapply(beans$rt.len, list(beans$pot.size, beans$P.lev), mean, na.rm=TRUE)
+```
+
+
+```{r}
+tapply(beans$rt.len, list(paste(beans$pot.size, beans$P.lev)), mean , na.rm=TRUE)
+```
+
+Often we want to get summary data for multiple columns. The `aggregate()` is a convience form of apply that makes this trivially easy. 
+
+```{r}
+aggregate(x = beans[, 6:8], by = list(beans$pot.size, beans$phos), FUN = mean, na.rm = TRUE)
+
+```
+
+
+```{r}
+# same as above but using column numbers instead of column names for a nicer output
+
+aggregate(x = beans[, 6:8], by = beans[c(1,2)], FUN = mean, na.rm = TRUE)
+aggregate(x = beans[, 6:8], by = beans[c(1,2)], FUN = sd, na.rm = TRUE)
+```
+
+Specify my own function for aggregation by defining `function(x)` on the fly
+
+```{r}
+aggregate(beans[, 6:8], beans[c(1,2)], function(x) (sd(x, na.rm = TRUE) / (length(x) - sum(is.na(x))) ^0.5))
+```
+
+
+
+```{r}
+beans.means <- aggregate(beans[, 6:8], beans[c(1,2)], mean, na.rm = TRUE)
+
+# re-rder the the data for nicer plotting
+beans.means <- beans.means[order(beans.means$pot.size, beans.means$phos),]
+
+#add labels and legend
+barplot(beans.means$ShtDM, 
+        col = c("white", "gray70"), 
+        names.arg = paste(beans.means$pot.size, beans.means$phox, sep="\n"), 
+        ylab = "Shoot biomass (g)")
+legend("topright", fill=c("white", "gray70", "grey50"), legend=c("LP", "HP"))
+```
+
+### Reformatting Data from "Wide" to "long"
+
+```{r}
+data("PlantGrowth")
+head(PlantGrowth)
+```
+
+`unstack()` used to make one column for each level of group
+
+```{r}
+unique(PlantGrowth$group)
+unstack(PlantGrowth)
+
+```
+
+
+
+```{r}
+pg <- unstack(PlantGrowth, weight ~ group)
+boxplot(pg)
+
+```
+
+### Reshape
+`reshape` package hs powerful tools to reshape data in many ways. The two core functions are `melt()` and `cast()` (thinking working with metal) - once you 'melt' the data you can 'cast' it into any shape you want. 
+* `melt()` turns a data set into a series of observations which consist of a variable and value
+* `cast()` reshapes melted data, 'casting' it into a new form
+
+```{r}
+require(reshape)
+data(iris)
+iris$id <- row.names(iris)
+head(melt(iris, id = "id"))
+
+```
+
+
+
+```{r}
+tail(melt(iris, id = "id"))
+```
+
+
+
+```{r}
+melt.iris <- melt(iris, id = c("id", "Species"))
+dim(melt.iris)
+
+```
+Now instead of 150 observations with 6 variables we have 600 observations with 4 variables.
+
+```{r}
+head(melt.iris)
+
+```
+
+
+
+```{r}
+cast(melt.iris, Species ~ variable, mean)
+```
+
+`strplit()` used to split the strngs that represents variables
+
+```{r}
+# separate out Sepal and Petal variables
+head(strsplit(as.character(melt.iris$variable), split = ".", fixed = TRUE))
+
+```
+
+Notice that this returns a list. We’ll have to use do.call() to call rbind() on the list to bind the list
+elements into a data frame.
+
+```{r}
+head(do.call(rbind, strsplit(as.character(melt.iris$variable), split = ".",
+fixed = TRUE)))
+
+```
+
+
+```{r}
+melt.iris <- cbind(melt.iris, do.call(rbind, strsplit(as.character(melt.iris$variable), 
+                                                      split = ".", fixed = TRUE)))
+names(melt.iris)[5:6] <- c("Part", "Dimension")
+head(melt.iris)
+```
+
+
+```{r}
+cast(melt.iris, Species ~ Dimension | Part, mean)
+```
+
+
+```{r}
+cast(melt.iris, Species ~ Dimension + Part, mean)
+```
+
+
+```{r}
+cast(melt.iris, Species ~ Dimension, mean)
+```
+
+
+```{r}
+# back to original data
+head(cast(melt.iris, Species + id ~ Part + Dimension))
+```
+
+### Mearging Data Sets
+
+```{r}
+authors <- data.frame(surname = c("Tukey", "Venables", "Tierney", "Ripley","McNeil"), 
+                      nationality = c("US", "Australia", "US", "UK", "Australia"),
+deceased = c("yes", rep("no", 4)))
+books <- data.frame(name = c("Tukey", "Venables", "Tierney", "Ripley", "Ripley","McNeil", "R Core"), title = c("Expl. Data Anal.", "Mod. Appl. Stat ...","LISP-STAT", "Spatial Stat.", "Stoch. Simu.", "Inter. Data Anal.", "An Intro. to R"),
+other.author = c(NA, "Ripley", NA, NA, NA, NA, "Venables & Smith"))
+authors
+
+```
+
+
+```{r}
+# merge the 2 data frames together
+(m1 <- merge(authors, books, by.x = "surname", by.y = "name"))
+```
+
+
+```{r}
+(m2 <- merge(books, authors, by.x = "name", by.y = "surname"))
+```
+
+###  More about Loops
+```{r}
+for (i in 1:5) print(i)
+```
+
+
+```{r}
+x <- c(2, 5, 6, 23, 6)
+for (i in x){
+  cat(paste("i^2=", i^2, "\n"))
+}
+```
+
+
+```{r}
+par(mfrow=c(3,1),mar=c(3,3,0.5,0.5))
+for (p in c(4,5,3)){
+barplot(beans.means[,p],col=c("white","grey70"),
+names.arg=paste(beans.means$pot.size,beans.means$phos,sep="\n"))
+# plot the pth column of beans.means
+}
+
+```
