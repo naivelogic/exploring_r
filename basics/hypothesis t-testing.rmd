@@ -1,0 +1,179 @@
+---
+title: "DUKE - t-distributions and comparing 2 means"
+output: html_notebook
+---
+
+https://www.coursera.org/learn/inferential-statistics-intro/
+
+
+finding propbabilities
+
+P(|Z| > 2)
+```{r}
+pnorm(2, lower.tail = FALSE) * 2
+```
+P(|t.df = 50| > 2)
+```{r}
+pt(2, df = 50 ,lower.tail = FALSE) * 2
+```
+P(|t.df = 10| > 2) 
+
+```{r}
+pt(2, df= 10, lower.tail = FALSE) * 2
+```
+
+
+```{r}
+qt(0.025, df = 21 )
+```
+
+
+```{r}
+pt(30, df = 21, lower.tail = FALSE)
+```
+
+Estimate the difference between the average post-mean snack consumption bween those who eat with and without distractions
+
+```{r}
+x_w <- 52.1
+s_w <- 45.1
+n_w <- 22
+
+x_wo <- 27.1
+s_wo <- 26.4
+n_wo <- 22
+
+
+# point estimates
+point_estimates <- x_w - x_wo
+
+# DF for t statistic for inference on differnce of two means
+dft <- min(n_w -1, n_wo -1)
+
+# critical statisitc (t)
+t_star <- abs(qt(0.025, df = dft))
+
+# Standard Error
+se <- sqrt(((s_w^2)/n_w) + ((s_wo^2)/n_wo))
+
+confidence_interval <- t_star * se
+
+# confidence interval
+low <- point_estimates - confidence_interval
+high <- point_estimates + confidence_interval
+
+low
+high
+
+```
+
+
+```{r}
+
+# hypothesis
+# Ho: mu(w) - mu(wo) = 0
+# Ha: mu(w) - mu(wo) != 0
+
+# t-value
+t_value <- (point_estimates - 0) / se
+
+
+# p-value
+p_value <- pt(t_value, df = dft, lower.tail = FALSE) * 2
+
+p_value
+p_value < 0.05
+
+
+```
+
+### Inference for comparing two paired means
+
+Calculate the test statistic and the p-value for this hypothesis test
+https://www.coursera.org/learn/inferential-statistics-intro/lecture/k5zhM/inference-for-comparing-two-paired-means
+
+```{r}
+t_value <- abs(-0.87)
+p_value <- pt(t_value, df = (200-1), lower.tail = FALSE) * 2
+each_tail_area <- p_value /2
+each_tail_area
+p_value
+p_value < 0.05
+```
+
+### Confidence Intervals and Sampling
+A sample of 50 college students were asked how many exclusive relationships they've been in so far. The students in the sample had an average of 3.2 exlusive relathipships with a standard deviation of 1.74. In addition, the sample distribution was only slightly skewed to the right. Estimate the true average number of exclusive relationships based on this sample using a 95% confidence interval.
+
+https://www.coursera.org/learn/inferential-statistics-intro/lecture/txXVo/ci-for-the-mean-examples
+
+```{r}
+n <- 50
+x_bar <- 3.2
+s <- 1.74
+ci <- 0.95
+alpha <- 1-ci
+
+# standard error
+se <- (s/sqrt(n))
+
+# z score (CRITICAL VALUE)
+z <- abs(qnorm((alpha)/2))
+
+# Confidence Intervals
+ci_low <- x_bar - (z*se)
+ci_high <- x_bar + (z*se)
+
+ci_low
+ci_high
+```
+
+We are 95% confident that college students on average have been in 2.75 to 3.68 exclusive relationships
+
+### p-value
+p(xbar > 3.2 | ho: mu = 3)
+```{r}
+mu <- 3
+
+#z-score (TEST STATISTIC)
+z_score <- (3.2-3)/se
+
+# p value
+p_value <- pnorm(-abs(z_score))
+p_value
+p_value < alpha
+
+```
+p-value = P(Z > 0.81) = 0.2090.20
+Our p-value is 0.209, and since it's high, at least, it's higher than 5%, we do not reject the null hypothesis.
+
+
+```{r}
+n <- 36
+x_bar <- 118.2
+s <- 6.5
+ci <- 0.99
+mu <- 100
+alpha <- 1-ci
+
+# standard error
+se <- (s/sqrt(n))
+
+# z score (CRITICAL VALUE)
+z <- abs(qnorm((alpha)/2))
+
+# Confidence Intervals
+ci_low <- x_bar - (z*se)
+ci_high <- x_bar + (z*se)
+
+ci_low
+ci_high
+
+
+#z-score (TEST STATISTIC)
+z_score <- (x_bar - mu)/se
+
+# p value
+p_value <- pnorm(-abs(z_score))
+p_value
+p_value < alpha
+```
